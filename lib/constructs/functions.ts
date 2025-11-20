@@ -29,6 +29,9 @@ export class Functions extends Construct {
     const memorySize = isProd ? 1024 : 512;
     const timeout = isProd ? cdk.Duration.seconds(30) : cdk.Duration.seconds(10);
     const logRetention = isProd ? logs.RetentionDays.ONE_MONTH : logs.RetentionDays.ONE_WEEK;
+    const apiLogGroup = new logs.LogGroup(this, 'ApiFunctionLogs', {
+      retention: logRetention,
+    });
 
     this.apiFunction = new lambdaNodejs.NodejsFunction(this, 'ApiFunction', {
       entry: 'lambda/handler.ts',
@@ -37,7 +40,7 @@ export class Functions extends Construct {
       architecture: lambda.Architecture.ARM_64,
       memorySize,
       timeout,
-      logRetention,
+      logGroup: apiLogGroup,
       tracing: lambda.Tracing.ACTIVE,
       reservedConcurrentExecutions: isProd ? undefined : 10,
       bundling: {

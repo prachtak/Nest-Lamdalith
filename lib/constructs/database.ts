@@ -24,7 +24,7 @@ export class Database extends Construct {
       partitionKey: { name: partitionKeyName, type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy: props.removalPolicy ?? cdk.RemovalPolicy.DESTROY,
-      pointInTimeRecovery: isProd,
+      pointInTimeRecoverySpecification: isProd ? {pointInTimeRecoveryEnabled: true} : undefined,
       encryption: isProd ? dynamodb.TableEncryption.AWS_MANAGED : dynamodb.TableEncryption.DEFAULT,
     });
   }
