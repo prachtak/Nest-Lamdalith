@@ -64,10 +64,15 @@ export class InternalError extends AppError {
   }
 }
 
+export class ServiceUnavailableError extends AppError {
+  constructor(message = 'Service unavailable', details?: unknown) {
+    super(message, {httpStatus: 503, code: 'SERVICE_UNAVAILABLE', details});
+  }
+}
+
 export function toAppError(err: unknown): AppError {
   if (err instanceof AppError) return err;
   if (err instanceof Error) {
-    // Zachováme původní message jen v dev režimu, jinak vrátíme generickou zprávu
     const isDev = (process.env.NODE_ENV || process.env.STAGE) === 'dev';
     return new InternalError(isDev ? err.message : undefined);
   }

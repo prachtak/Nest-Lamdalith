@@ -9,9 +9,18 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "outDir": "dist",
-    "types": ["node"],
+    "types": [
+      "node",
+      "jest"
+    ],
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
   },
-  "include": ["bin/**/*.ts", "lib/**/*.ts", "lambda/**/*.ts", "src/**/*.ts"]
+  "include": [
+    "bin/**/*.ts",
+    "lib/**/*.ts",
+    "lambda/**/*.ts",
+    "src/**/*.ts",
+    "test/**/*.ts"
+  ]
 }

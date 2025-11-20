@@ -1,13 +1,15 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, Res } from '@nestjs/common';
-import { Response } from 'express';
-import { GameService } from '../../application/services/GameService';
-import { GuessDto } from './dto/guess.dto';
+import {Body, Controller, HttpCode, HttpStatus, Inject, Param, Post, Res} from '@nestjs/common';
+import {Response} from 'express';
+import {GameService} from '../../application/services/GameService';
+import {GuessDto} from './dto/guess.dto';
+import {DtoValidationPipe} from '../../common/pipes/dto-validation.pipe';
 
-@Controller()
+@Controller('games')
 export class GameController {
-  constructor(private readonly service: GameService) {}
+  constructor(@Inject(GameService) private readonly service: GameService) {
+  }
 
-  @Post('start-game')
+  @Post()
   @HttpCode(HttpStatus.CREATED)
   async startGame(@Res({ passthrough: true }) res: Response) {
     const result = await this.service.startGame();
@@ -15,9 +17,12 @@ export class GameController {
     return result;
   }
 
-  @Post('guess')
-  async guess(@Body() dto: GuessDto) {
-    const result = await this.service.makeGuess(dto.gameId, dto.guess);
-    return result;
+  @Post(':gameId/guesses')
+  @HttpCode(HttpStatus.OK)
+  async guess(
+      @Param('gameId') gameId: string,
+      @Body(new DtoValidationPipe(GuessDto)) dto: GuessDto,
+  ) {
+    return await this.service.makeGuess(gameId, dto.guess);
   }
 }

@@ -33,7 +33,9 @@ coverage/
 # Environment files
 .env
 .env.*
-!.env.example
+!.env.dev
+!.env.stage
+!.env.prod
 .envrc
 
 # AWS CDK / LocalStack artifacts

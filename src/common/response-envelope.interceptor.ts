@@ -1,6 +1,8 @@
-import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import {CallHandler, ExecutionContext, Injectable, NestInterceptor} from '@nestjs/common';
+import {Observable} from 'rxjs';
+import {map} from 'rxjs/operators';
+import {getRequestContext} from './http.util';
+import {AppRequest} from './types';
 
 export interface ResponseMeta {
   requestId: string;
@@ -20,26 +22,18 @@ export interface ResponseEnvelope<T> {
   meta: ResponseMeta;
 }
 
-function getHeader(headers: Record<string, any>, name: string): string | undefined {
-  const found = Object.entries(headers || {}).find(([k]) => k.toLowerCase() === name.toLowerCase());
-  return (found?.[1] as string) || undefined;
-}
 
 @Injectable()
 export class ResponseEnvelopeInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const startedAt = Date.now();
     const http = context.switchToHttp();
-    const req = http.getRequest<any>();
-    const res = http.getResponse<any>();
+      const req = http.getRequest<AppRequest>();
+      const res = http.getResponse();
     return next.handle().pipe(
       map((data) => {
         const now = Date.now();
-        // Extract API Gateway event if available via serverless-express
-        const apiGwEvent = req?.apiGateway?.event ?? req?.requestContext ?? undefined;
-        const requestId = apiGwEvent?.requestContext?.requestId || req.headers?.['x-amzn-requestid'] || 'unknown';
-        const corr = getHeader(req.headers || {}, 'x-correlation-id');
-        const correlationId = corr || requestId;
+          const {apiGwEvent, requestId, correlationId, stage} = getRequestContext(req);
         const meta: ResponseMeta = {
           requestId,
           correlationId,
@@ -47,10 +41,9 @@ export class ResponseEnvelopeInterceptor implements NestInterceptor {
           durationMs: now - startedAt,
           path: req.path,
           method: req.method,
-          stage: apiGwEvent?.requestContext?.stage,
+            stage,
           version: process.env.APP_VERSION,
         };
-        // Set headers similarly to the previous API helpers
         res.setHeader('Content-Type', 'application/json');
         res.setHeader('Cache-Control', 'no-store');
         res.setHeader('X-Request-Id', meta.requestId);

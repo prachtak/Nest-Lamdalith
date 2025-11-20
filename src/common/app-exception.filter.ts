@@ -1,23 +1,17 @@
-import { ArgumentsHost, Catch, ExceptionFilter, HttpStatus } from '@nestjs/common';
-import { AppError, toAppError } from '../application/errors/AppError';
-
-function getHeader(headers: Record<string, any>, name: string): string | undefined {
-  const found = Object.entries(headers || {}).find(([k]) => k.toLowerCase() === name.toLowerCase());
-  return (found?.[1] as string) || undefined;
-}
+import {ArgumentsHost, Catch, ExceptionFilter, HttpStatus} from '@nestjs/common';
+import {AppError, toAppError} from '../application/errors/AppError';
+import {getRequestContext} from './http.util';
+import {AppRequest} from './types';
 
 @Catch()
 export class AppExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
-    const req = ctx.getRequest<any>();
-    const res = ctx.getResponse<any>();
+    const req = ctx.getRequest<AppRequest>();
+    const res = ctx.getResponse();
 
     const now = Date.now();
-    const apiGwEvent = req?.apiGateway?.event ?? req?.requestContext ?? undefined;
-    const requestId = apiGwEvent?.requestContext?.requestId || req.headers?.['x-amzn-requestid'] || 'unknown';
-    const corr = getHeader(req.headers || {}, 'x-correlation-id');
-    const correlationId = corr || requestId;
+    const {requestId, correlationId, stage} = getRequestContext(req);
 
     const appErr: AppError = toAppError(exception);
     const body = {
@@ -27,9 +21,10 @@ export class AppExceptionFilter implements ExceptionFilter {
         requestId,
         correlationId,
         timestamp: new Date(now).toISOString(),
+        durationMs: req?.startedAt ? now - req.startedAt : undefined,
         path: req.path,
         method: req.method,
-        stage: apiGwEvent?.requestContext?.stage,
+        stage,
         version: process.env.APP_VERSION,
       },
     };
