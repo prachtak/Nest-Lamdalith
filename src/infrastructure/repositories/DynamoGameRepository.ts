@@ -51,7 +51,8 @@ export class DynamoGameRepository implements GameRepository {
           TableName: this.tableName,
           Key: {gameId: game.gameId},
           UpdateExpression: `SET ${updateParts.join(', ')}`,
-          ExpressionAttributeValues: values,
+          ConditionExpression: 'attribute_not_exists(finished) OR finished = :finishedFalse',
+          ExpressionAttributeValues: {...values, ':finishedFalse': false},
         })
     );
   }

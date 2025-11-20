@@ -84,7 +84,8 @@ describe('GameController (Integration)', () => {
     });
 
     describe('POST /games/:gameId/guesses', () => {
-        const gameId = 'test-game-123';
+        // Valid UUID v4 for parameter validation
+        const gameId = '123e4567-e89b-42d3-a456-426614174000';
 
         it('should accept a valid guess and return 200', async () => {
             mockRepository.get.mockResolvedValue({
@@ -151,7 +152,7 @@ describe('GameController (Integration)', () => {
             mockRepository.get.mockResolvedValue(null);
 
             const response = await request(app.getHttpServer())
-                .post(`/games/non-existent-id/guesses`)
+                .post(`/games/123e4567-e89b-42d3-a456-426614174999/guesses`)
                 .send({guess: 50})
                 .expect(404);
 

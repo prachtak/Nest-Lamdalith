@@ -1,4 +1,4 @@
-import {ArgumentsHost, Catch, ExceptionFilter, HttpStatus} from '@nestjs/common';
+import {ArgumentsHost, Catch, ExceptionFilter, HttpStatus, Logger} from '@nestjs/common';
 import {AppError, toAppError} from '../application/errors/AppError';
 import {getRequestContext} from './http.util';
 import {AppRequest} from './types';
@@ -13,7 +13,16 @@ export class AppExceptionFilter implements ExceptionFilter {
     const now = Date.now();
     const {requestId, correlationId, stage} = getRequestContext(req);
 
-    const appErr: AppError = toAppError(exception);
+    let appErr: AppError = toAppError(exception);
+
+    const status = appErr.httpStatus || HttpStatus.INTERNAL_SERVER_ERROR;
+
+    // Log 5xx errors for better observability
+    if (status >= 500) {
+      const logger = new Logger(AppExceptionFilter.name);
+      const stack = (exception as any)?.stack;
+      logger.error(appErr.message, stack);
+    }
     const body = {
       success: false,
       error: appErr.toBody(),
@@ -29,7 +38,6 @@ export class AppExceptionFilter implements ExceptionFilter {
       },
     };
 
-    const status = appErr.httpStatus || HttpStatus.INTERNAL_SERVER_ERROR;
     res.status(status);
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Cache-Control', 'no-store');

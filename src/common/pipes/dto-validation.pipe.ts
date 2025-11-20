@@ -33,7 +33,7 @@ export class DtoValidationPipe<T> implements PipeTransform<any, Promise<T>> {
         const errors = await validate(instance as any, {
             whitelist: this.options.whitelist ?? true,
             forbidNonWhitelisted: this.options.forbidNonWhitelisted ?? true,
-            stopAtFirstError: this.options.stopAtFirstError ?? true,
+            stopAtFirstError: this.options.stopAtFirstError ?? false,
             validationError: {target: false},
         });
 
@@ -42,7 +42,37 @@ export class DtoValidationPipe<T> implements PipeTransform<any, Promise<T>> {
                 property: e.property,
                 constraints: e.constraints,
             }));
-            throw new ValidationError('Validation failed', details);
+
+            // Prefer the most helpful constraint message (e.g., isInt over min/max when value isn't a number)
+            const pickConstraintMessage = (e: CvError): string | undefined => {
+                const constraints = e.constraints || {};
+                const priority = [
+                    'isDefined',
+                    'isInt',
+                    'isNumber',
+                    'isUUID',
+                    'isBoolean',
+                    'isString',
+                    'min',
+                    'max',
+                    'whitelistValidation',
+                ];
+                for (const key of priority) {
+                    if (constraints[key]) return constraints[key];
+                }
+                const firstValue = Object.values(constraints)[0];
+                return firstValue as string | undefined;
+            };
+
+            const first = errors[0];
+            const chosenMsg = pickConstraintMessage(first);
+            const friendly = chosenMsg
+                ? `Validation failed for '${first.property}': ${chosenMsg}`
+                : first?.property
+                    ? `Validation failed for '${first.property}'`
+                    : 'Validation failed';
+
+            throw new ValidationError(friendly, details);
         }
 
         return instance;

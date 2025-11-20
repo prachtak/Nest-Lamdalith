@@ -72,6 +72,21 @@ export class ServiceUnavailableError extends AppError {
 
 export function toAppError(err: unknown): AppError {
   if (err instanceof AppError) return err;
+
+  // Map Express body-parser JSON syntax errors to ValidationError (400)
+  const anyErr = err as any;
+  if (anyErr && anyErr instanceof SyntaxError && ((anyErr as any).status === 400 || (anyErr as any).type === 'entity.parse.failed')) {
+    return new ValidationError('Invalid JSON payload', {
+      type: (anyErr as any).type,
+      originalMessage: anyErr.message,
+    });
+  }
+
+  // Map Nest BadRequestException (e.g., body-parser or validation) to ValidationError
+  if (anyErr && anyErr.name === 'BadRequestException') {
+    return new ValidationError(anyErr.message || 'Bad request');
+  }
+
   if (err instanceof Error) {
     const isDev = (process.env.NODE_ENV || process.env.STAGE) === 'dev';
     return new InternalError(isDev ? err.message : undefined);

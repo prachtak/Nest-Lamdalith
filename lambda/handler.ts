@@ -10,11 +10,15 @@ import {AppExceptionFilter} from '../src/common/app-exception.filter';
 import helmet from 'helmet';
 import {randomUUID} from 'crypto';
 import {ConfigService} from '@nestjs/config';
+import {ValidationPipe} from '@nestjs/common';
 
 let cachedHandler: any;
 
 async function bootstrapServer() {
     const expressApp = express();
+    // Body parsers to ensure JSON/urlencoded bodies are parsed before reaching Nest
+    expressApp.use(express.json({strict: true}));
+    expressApp.use(express.urlencoded({extended: true}));
     const adapter = new ExpressAdapter(expressApp);
     const app = await NestFactory.create(AppModule, adapter, {logger: ['error', 'warn', 'log']});
 
@@ -44,6 +48,16 @@ async function bootstrapServer() {
         exposedHeaders: ['X-Request-Id', 'X-Correlation-Id'],
         maxAge: 600,
     });
+
+    // Global validation (note: for DTOs sensitive to metadata stripping, we still use local DtoValidationPipe)
+    app.useGlobalPipes(new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+        transformOptions: {enableImplicitConversion: true},
+        stopAtFirstError: true,
+        validateCustomDecorators: true,
+    }));
 
     // Global envelope + error mapping
     app.useGlobalInterceptors(new ResponseEnvelopeInterceptor());

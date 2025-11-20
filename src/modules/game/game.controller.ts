@@ -1,4 +1,4 @@
-import {Body, Controller, HttpCode, HttpStatus, Inject, Param, Post, Res} from '@nestjs/common';
+import {Body, Controller, HttpCode, HttpStatus, Inject, Param, ParseUUIDPipe, Post, Res} from '@nestjs/common';
 import {Response} from 'express';
 import {GameService} from '../../application/services/GameService';
 import {GuessDto} from './dto/guess.dto';
@@ -20,7 +20,7 @@ export class GameController {
   @Post(':gameId/guesses')
   @HttpCode(HttpStatus.OK)
   async guess(
-      @Param('gameId') gameId: string,
+      @Param('gameId', new ParseUUIDPipe({version: '4'})) gameId: string,
       @Body(new DtoValidationPipe(GuessDto)) dto: GuessDto,
   ) {
     return await this.service.makeGuess(gameId, dto.guess);

@@ -24,7 +24,7 @@ Tento repozitář implementuje zadání „Simple REST API Game“ (Guess the Nu
 │  │  └─ tokens.ts                         # DI tokeny (repo binding)
 │  ├─ modules/
 │  │  └─ game/
-│  │     ├─ game.controller.ts       # REST controller (POST /start-game, POST /guess)
+│  │     ├─ game.controller.ts       # REST controller (POST /games, POST /games/:gameId/guesses)
 │  │     ├─ game.module.ts           # Feature modul
 │  │     └─ dto/guess.dto.ts         # DTO + class-validator
 │  │  └─ health/
@@ -141,6 +141,16 @@ Příklad:
 ```bash
 curl -s -X POST "$API_URL/games/<GAME_ID>/guesses" -H 'Content-Type: application/json' -d '{"guess":42}'
 ```
+
+## Validace a chybové stavy
+
+- Kvůli bundlování přes esbuild se v prostředí AWS Lambda může ztrácet runtime metadata dekorátorů. Proto je na
+  endpointu `POST /games/:gameId/guesses` použita lokální `DtoValidationPipe(GuessDto)` (
+  `src/common/pipes/dto-validation.pipe.ts`), která provádí transformaci a validaci bez závislosti na metadatech.
+- Aplikace zároveň používá globální `ValidationPipe` (whitelist, forbidNonWhitelisted, transform, stopAtFirstError)
+  inicializovanou v `lambda/handler.ts` pro jednodušší scénáře.
+- Parametr `:gameId` je validován přes `ParseUUIDPipe` (UUID v4). Při nevalidním `gameId` API vrací
+  `400 VALIDATION_ERROR`.
 
 ## Konfigurace (multi-environment)
 
