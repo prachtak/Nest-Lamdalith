@@ -120,18 +120,20 @@ describe('DynamoGameRepository', () => {
 
             expect(ddbMock.commandCalls(UpdateCommand)).toHaveLength(1);
             const updateCall = ddbMock.commandCalls(UpdateCommand)[0];
-            expect(updateCall.args[0].input).toEqual({
+            expect(updateCall.args[0].input).toEqual(expect.objectContaining({
                 TableName: tableName,
                 Key: {gameId: game.gameId},
                 UpdateExpression: 'SET attempts = :attempts, guessHistory = :guessHistory, finished = :finished, won = :won, finishedAt = :finishedAt',
-                ExpressionAttributeValues: {
+                ConditionExpression: 'attribute_not_exists(finished) OR finished = :finishedFalse',
+                ExpressionAttributeValues: expect.objectContaining({
                     ':attempts': game.attempts,
                     ':guessHistory': game.guessHistory,
                     ':finished': game.finished,
                     ':won': game.won,
                     ':finishedAt': game.finishedAt,
-                },
-            });
+                    ':finishedFalse': false,
+                }),
+            }));
         });
 
         it('should handle DynamoDB errors during update', async () => {
@@ -166,8 +168,14 @@ describe('DynamoGameRepository', () => {
             await repository.update(game);
 
             const updateCall = ddbMock.commandCalls(UpdateCommand)[0];
+            // Expect only the relevant attributes present when won/finishedAt are undefined
+            expect(updateCall.args[0].input.UpdateExpression)
+                .toBe('SET attempts = :attempts, guessHistory = :guessHistory, finished = :finished');
+            expect(updateCall.args[0].input.ConditionExpression)
+                .toBe('attribute_not_exists(finished) OR finished = :finishedFalse');
             expect(updateCall.args[0].input.ExpressionAttributeValues?.[':won']).toBeUndefined();
             expect(updateCall.args[0].input.ExpressionAttributeValues?.[':finishedAt']).toBeUndefined();
+            expect(updateCall.args[0].input.ExpressionAttributeValues?.[':finishedFalse']).toBe(false);
         });
     });
 });

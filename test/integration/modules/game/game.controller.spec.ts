@@ -263,11 +263,13 @@ describe('GameController (Integration)', () => {
     });
 
     describe('Error handling', () => {
+        const gameId = '123e4567-e89b-42d3-a456-426614174000';
+
         it('should return proper error envelope structure', async () => {
             mockRepository.get.mockResolvedValue(null);
 
             const response = await request(app.getHttpServer())
-                .post('/games/test-id/guesses')
+                .post(`/games/${gameId}/guesses`)
                 .send({guess: 50})
                 .expect(404);
 
@@ -289,7 +291,7 @@ describe('GameController (Integration)', () => {
             mockRepository.get.mockResolvedValue(null);
 
             const response = await request(app.getHttpServer())
-                .post('/games/test-id/guesses')
+                .post(`/games/${gameId}/guesses`)
                 .send({guess: 50})
                 .expect(404);
 
